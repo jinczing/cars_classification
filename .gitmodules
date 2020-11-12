@@ -1,0 +1,6 @@
+[submodule "style-augmentation"]
+	path = style-augmentation
+	url = https://github.com/philipjackson/style-augmentation.git
+[submodule "FixRes"]
+	path = FixRes
+	url = https://github.com/jinczing/FixRes.git
