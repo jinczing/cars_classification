@@ -1,4 +1,4 @@
-# Cars Classifications
+# Cars Classification Kaggle Competition
 
 ### CS_T0828_HW1 Kaggle Competition:
 
