@@ -44,7 +44,7 @@ This model is trained on EfficientNet-b6 ("tf_efficientnet_b6_ns" in timm model)
 
 ### Inference
 
-To inference, execute the cars_classification.ipynb from top to bottom(I recommend running on Google Colab). You can just skip the training session for inference.
+To inference, execute this(https://colab.research.google.com/drive/1ccnyNbx9Gr3gxHPcm1WEquTpDVZMB3cD?usp=sharing) Google Colab notebook from top to bottom. You can just skip the training session for inference.
 
 #### Final Results
 
