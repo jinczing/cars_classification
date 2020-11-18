@@ -1,3 +1,15 @@
+import torch
+import numpy as np
+import tqdm
+import csv
+import os
+from timm.models import create_model
+import torch.autograd.profiler as profiler
+from torch.utils.data import Dataset, DataLoader
+from torchvision.datasets import ImageFolder
+from torchvision.transforms import transforms
+from style_augmentation.styleaug import StyleAugmentor
+
 class MultiScaleFiveCrop(object):
     def __init__(self, sizes=(680, 600, 528)):
         self.sizes = sizes # 680, 528, 410
@@ -24,11 +36,13 @@ class MultiScaleFiveCrop(object):
 
 class Tester:
     def __init__(self, epoch, dataset_path='./drive/My Drive/datasets/car classification/train_dataset', 
+                 val_path='./drive/My Drive/datasets/car classification/val_data',
                  batch_size=128, model_name='tf_efficientnet_b0_ns', ckpt_path='./drive/My Drive/ckpt/190.pth', 
                  test_number=5000,
                  pseudo_test=True, crop='five', csv_path='', mode='fix', sizes=(680, 600, 528)):
         self.epoch = epoch
         self.dataset_path = dataset_path
+        self.val_path = val_path
         self.batch_size = batch_size
         self.model_name = model_name
         self.ckpt_path = ckpt_path
@@ -88,7 +102,7 @@ class Tester:
             self.model.load_state_dict(ckpt['model_state_dict'])
         self.start_epoch = 0
 
-        l = [d.name for d in os.scandir('./drive/My Drive/datasets/car classification/val_data') if d.is_dir()]
+        l = [d.name for d in os.scandir(self.val_path) if d.is_dir()]
         l.sort()
         l[l.index('Ram CV Cargo Van Minivan 2012')] = 'Ram C/V Cargo Van Minivan 2012'
         self.label_texts = l
@@ -170,13 +184,13 @@ class Tester:
                             bs, ncrops, c, h, w = inputs.size()
                             preds = self.model(inputs.view(-1, c, h, w))
                             preds = preds.view(bs, ncrops, -1).mean(1)
-                      else:
-                          preds_l = []
-                          for i in range(len(self.sizes)):
-                              bs, ncrops, c, h, w = data[i][0].size()
-                              inputs = data[i][0].to(self.device)
-                              preds_l.append(self.model(inputs.view(-1, c, h, w)))
-                              preds_l[i] = preds_l[i].view(bs, ncrops, -1).mean(1)
+                    else:
+                        preds_l = []
+                        for i in range(len(self.sizes)):
+                            bs, ncrops, c, h, w = data[i][0].size()
+                            inputs = data[i][0].to(self.device)
+                            preds_l.append(self.model(inputs.view(-1, c, h, w)))
+                            preds_l[i] = preds_l[i].view(bs, ncrops, -1).mean(1)
 
                         preds = torch.stack(preds_l, dim=1).mean(1)
 

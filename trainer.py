@@ -174,55 +174,52 @@ class Trainer:
                         f.write('\n')
                     loss_mean = 0
                     acc_mean = 0
-          
-          
-          epoch_loss_mean /= len(pbar)
-          epoch_acc_mean /= len(pbar)
-          
-          # validate
-          pbar = tqdm.tqdm(self.val_dataloader)
-          pbar.set_description('validating process')
-          val_loss_mean = 0
-          val_acc_mean = 0
-          self.model.eval()
-          with torch.no_grad():
-              for it, data in enumerate(pbar):
-                  inputs = data[0].to(self.device)
-                  labels = data[1].to(self.device)
+            epoch_loss_mean /= len(pbar)
+            epoch_acc_mean /= len(pbar)
+            # validate
+            pbar = tqdm.tqdm(self.val_dataloader)
+            pbar.set_description('validating process')
+            val_loss_mean = 0
+            val_acc_mean = 0
+            self.model.eval()
+            with torch.no_grad():
+                for it, data in enumerate(pbar):
+                    inputs = data[0].to(self.device)
+                    labels = data[1].to(self.device)
 
-                  if self.val_crop == 'center':
-                      preds = self.model(inputs)
-                  elif self.val_crop == 'five':
-                      bs, ncrops, c, h, w = inputs.size()
-                      preds = self.model(inputs.view(-1, c, h, w))
-                      preds = preds.view(bs, ncrops, -1).mean(1)
+                    if self.val_crop == 'center':
+                        preds = self.model(inputs)
+                    elif self.val_crop == 'five':
+                        bs, ncrops, c, h, w = inputs.size()
+                        preds = self.model(inputs.view(-1, c, h, w))
+                        preds = preds.view(bs, ncrops, -1).mean(1)
 
-                  loss = self.criterion(preds, labels)
-                  val_loss_mean += loss.item()
-                  acc = (preds.argmax(-1) == labels).sum().item() / labels.size()[0]
-                  val_acc_mean += acc
-              
-          val_loss_mean /= len(pbar)
-          val_acc_mean /= len(pbar)
+                    loss = self.criterion(preds, labels)
+                    val_loss_mean += loss.item()
+                    acc = (preds.argmax(-1) == labels).sum().item() / labels.size()[0]
+                    val_acc_mean += acc
+                
+            val_loss_mean /= len(pbar)
+            val_acc_mean /= len(pbar)
 
 
-          print('loss_mean:', epoch_loss_mean, 'acc_mean:', epoch_acc_mean)
-          print('val_loss_mean:', val_loss_mean, 'val_acc_mean:', val_acc_mean)
-          
-          with open(self.log_path, 'a+') as f:
-              f.write('epoch summary\n')
-              f.write('epoch: ' + str(epoch) + '\n')
-              f.write('loss: ' + str(epoch_loss_mean) + '\n')
-              f.write('acc: ' + str(epoch_acc_mean) + '\n')
-              f.write('val_loss: ' + str(val_loss_mean) + '\n')
-              f.write('val_acc: ' + str(val_acc_mean) + '\n')
-              f.write('\n')
-          if (epoch+1) % self.save_step == 0:
-              torch.save({
-                  'model_state_dict': self.model.state_dict(),
-                  'optimizer_state_dict': self.optimizer.state_dict(),
-                  'epoch': epoch + 1
-              }, './drive/My Drive/ckpt/%d.pth'%(epoch+1))
+            print('loss_mean:', epoch_loss_mean, 'acc_mean:', epoch_acc_mean)
+            print('val_loss_mean:', val_loss_mean, 'val_acc_mean:', val_acc_mean)
+            
+            with open(self.log_path, 'a+') as f:
+                f.write('epoch summary\n')
+                f.write('epoch: ' + str(epoch) + '\n')
+                f.write('loss: ' + str(epoch_loss_mean) + '\n')
+                f.write('acc: ' + str(epoch_acc_mean) + '\n')
+                f.write('val_loss: ' + str(val_loss_mean) + '\n')
+                f.write('val_acc: ' + str(val_acc_mean) + '\n')
+                f.write('\n')
+            if (epoch+1) % self.save_step == 0:
+                torch.save({
+                    'model_state_dict': self.model.state_dict(),
+                    'optimizer_state_dict': self.optimizer.state_dict(),
+                    'epoch': epoch + 1
+                }, './drive/My Drive/ckpt/%d.pth'%(epoch+1))
         
 
 def criterion(self, preds, trues):
