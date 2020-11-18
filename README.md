@@ -12,29 +12,13 @@ The folder structures should like this:
 
 datasets
 
-----car classification
+----train_data
 
---------train_data
+----val_data
 
-------------class 1
+----test_data
 
-----------------image 1
-
-----------------...
-
---------val_data
-
-------------class 1
-
-----------------image 1
-
-----------------...
-
---------test_data
-
-------------dummy
-
-----------------image 1
+"..._data" folders should follow the structure of ImageFolder in Pytorch. (For test_data, you can just add dummy class.)
 
 ### Download Pretrained Model:
 
