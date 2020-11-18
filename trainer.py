@@ -8,6 +8,7 @@ import torch.autograd.profiler as profiler
 from torch.utils.data import Dataset, DataLoader
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import transforms
+from style_augmentation.styleaug import StyleAugmentor
 
 # Borrow from Improved Regularization of Convolutional Neural Networks with Cutout (https://github.com/uoguelph-mlrg/Cutout)
 class Cutout(object):
@@ -51,11 +52,15 @@ class Cutout(object):
 
 
 class Trainer:
-    def __init__(self, epoch, dataset_path='./drive/My Drive/datasets/car classification/train_data', val_path='./drive/My Drive/datasets/car classification/val_data', val_crop='five',
-               batch_size=128, model_name='tf_efficientnet_b3_ns', 
+    def __init__(self, epoch, 
+               dataset_path='./drive/My Drive/datasets/car classification/train_data', 
+               val_path='./drive/My Drive/datasets/car classification/val_data', 
+               val_crop='five', batch_size=128, model_name='tf_efficientnet_b3_ns', 
                lr=0.001, lr_min=0.0001, weight_decay=1e-4, momentum=0.9, log_step=25, save_step=10,
                log_path='./drive/My Drive/cars_log.txt', cutout=True, style_aug=False,
                resume=False, resume_path='./drive/My Drive/ckpt/'):
+
+        # initialize attributes
         self.epoch = epoch
         self.dataset_path = dataset_path
         self.val_path = val_path
@@ -84,8 +89,10 @@ class Trainer:
         else:
             raise Exception('non-valid model name')
         
+        # Compose transforms
         transform = []
         val_transform = []
+
         transform += [transforms.RandomResizedCrop(self.input_size, scale=(0.125, 1.0))]
 
         if not self.style_aug:
@@ -110,6 +117,7 @@ class Trainer:
 
         self.transform = transforms.Compose(transform)
         self.val_transform = transforms.Compose(val_transform)
+
         self.dataset = ImageFolder(self.dataset_path, transform=self.transform)
         self.val_dataset = ImageFolder(self.val_path, transform=self.val_transform)
         self.dataloader = DataLoader(self.dataset, batch_size=self.batch_size, num_workers=0, shuffle=True)
@@ -118,11 +126,13 @@ class Trainer:
         self.model = create_model(model_name, pretrained=True, num_classes=196).to(self.device)
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay, nesterov=True)
         self.start_epoch = 0
+
         if resume:
             ckpt = torch.load(self.resume_path)
             self.model.load_state_dict(ckpt['model_state_dict'])
             self.optimizer.load_state_dict(ckpt['optimizer_state_dict'])
             self.start_epoch = ckpt['epoch']
+
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=epoch, last_epoch=self.start_epoch-1,
                   eta_min=lr_min)
 
@@ -138,6 +148,7 @@ class Trainer:
             self.scheduler.step()
             batch_number = len(pbar)
             for it, data in enumerate(pbar):
+
                 inputs = data[0].to(self.device)
                 labels = data[1].to(self.device)
 
@@ -146,11 +157,13 @@ class Trainer:
                 self.model.zero_grad()
                 loss.backward()
                 self.optimizer.step()
+
                 loss_mean += loss.item()
                 epoch_loss_mean += loss.item()
                 acc = (preds.argmax(-1) == labels).sum().item() / labels.size()[0]
                 acc_mean += acc
                 epoch_acc_mean += acc
+
                 if (it+1) % self.log_step == 0:
                     loss_mean /= self.log_step
                     acc_mean /= self.log_step
@@ -213,4 +226,4 @@ class Trainer:
         
 
 def criterion(self, preds, trues):
-    return torch.nn.CrossEntropyLoss()(preds, trues)from style_augmentation.styleaug import StyleAugmentor
+    return torch.nn.CrossEntropyLoss()(preds, trues)

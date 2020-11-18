@@ -1,12 +1,8 @@
-# Pseudo Testing Code
 class MultiScaleFiveCrop(object):
     def __init__(self, sizes=(680, 600, 528)):
         self.sizes = sizes # 680, 528, 410
 
     def __call__(self, img):
-        #c = img.size(0)
-        #h = img.size(1)
-        #w = img.size(2)
         c, h, w = img.size()
         if h<w:
             s = h
@@ -54,6 +50,7 @@ class Tester:
         else:
             raise Exception('non-valid model name')
         
+        # Compose transforms
         transform = []
         fill = lambda i: transforms.Resize((i.size[1]*(2**torch.ceil(torch.log2(torch.tensor(self.input_size[1]/i.size[1])))), 
                   i.size[0]*(2**torch.ceil(torch.log2(torch.tensor(self.input_size[1]/i.size[1]))))))(i) if i.size[0] < self.input_size[0] or i.size[1] < self.input_size[1] else i
@@ -66,10 +63,6 @@ class Tester:
             transform.append(transforms.FiveCrop(self.input_size[0]))
             transform.append(transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])))
             transform.append(transforms.Lambda(lambda crops: torch.stack([transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])(crop) for crop in crops])))
-
-
-
-
         self.transform = transforms.Compose(transform)
         
         if self.pseudo_test:
@@ -100,140 +93,102 @@ class Tester:
         l[l.index('Ram CV Cargo Van Minivan 2012')] = 'Ram C/V Cargo Van Minivan 2012'
         self.label_texts = l
 
-def get_transform_val(self, size):
-    if self.crop == 'five' or self.crop == 'multi':
-        transform_val = [transforms.Resize(int(size[0]*(1.14))), transforms.FiveCrop(size)]
-        transform_val.append(transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])))
-        transform_val.append(transforms.Lambda(lambda crops: torch.stack([transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])(crop) for crop in crops])))
-    else:
-        transform_val = [transforms.Resize(int(size[0]*(1.14))), transforms.CenterCrop(size)]
-        transform_val.append(transforms.ToTensor())
-        transform_val.append(transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]))
+    def get_transform_val(self, size):
+        if self.crop == 'five' or self.crop == 'multi':
+            transform_val = [transforms.Resize(int(size[0]*(1.14))), transforms.FiveCrop(size)]
+            transform_val.append(transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])))
+            transform_val.append(transforms.Lambda(lambda crops: torch.stack([transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])(crop) for crop in crops])))
+        else:
+            transform_val = [transforms.Resize(int(size[0]*(1.14))), transforms.CenterCrop(size)]
+            transform_val.append(transforms.ToTensor())
+            transform_val.append(transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]))
 
-    return transforms.Compose(transform_val)
+        return transforms.Compose(transform_val)
 
-def label_to_text(self, labels):
-    texts = []
-    names = sorted([i for _, _, i in os.walk(os.path.join(self.dataset_path, 'dummy'))][0])
-    for i, l in enumerate(labels):
-        texts.append([names[i].split('.')[0], self.label_texts[l.item()]])
-    texts.insert(0, ['id', 'label'])
-    return texts
+    def label_to_text(self, labels):
+        texts = []
+        names = sorted([i for _, _, i in os.walk(os.path.join(self.dataset_path, 'dummy'))][0])
+        for i, l in enumerate(labels):
+            texts.append([names[i].split('.')[0], self.label_texts[l.item()]])
+        texts.insert(0, ['id', 'label'])
+        return texts
 
-def p_test(self):
-    acc_mean = 0
-    loss_mean = 0
-    for epoch in range(self.start_epoch, self.epoch):
-        pbar = tqdm.tqdm(self.dataloader)
-        pbar.set_description('testing process')
-        self.model.eval()
-        tested_number = 0
-        with torch.no_grad():
-            for it, data in enumerate(pbar):
-                inputs = data[0].to(self.device)
-                labels = data[1].to(self.device)
+    def p_test(self):
+        acc_mean = 0
+        loss_mean = 0
 
-                
-                if self.crop == 'center':
-                    preds = self.model(inputs)
-                elif self.crop == 'five':
-                    bs, ncrops, c, h, w = inputs.size()
-                    preds = self.model(inputs.view(-1, c, h, w))
-                    preds = preds.view(bs, ncrops, -1).mean(1)
-                elif self.crop == 'multi':
-                    preds
-                    preds = preds.view(bs, 15, -1).mean(1)
-                
-                loss = self.criterion(preds, labels)
-                loss_mean += loss.item()
-                acc = (preds.argmax(-1) == labels).sum().item() / labels.size()[0]
-                acc_mean += acc
-
-                tested_number += self.batch_size
-
-                print('acc:', acc_mean/(tested_number//self.batch_size), 'loss:', loss_mean/(tested_number//self.batch_size))
-
-    acc_mean /= (len(pbar))
-    loss_mean /= (len(pbar))
-    print('acc_mean:', acc_mean, 'loss_mean:', loss_mean)
-
-def p_test_multi(self):
-
-    acc_mean = 0
-    loss_mean = 0
-    for epoch in range(self.start_epoch, self.epoch):
-        pbar = tqdm.tqdm(zip(*self.dataloader))
-        pbar.set_description('testing process')
-        self.model.eval()
-        tested_number = 0
-        with torch.no_grad():
-            for it, data in enumerate(pbar):
-                if self.crop != 'multi':
-                    inputs = data[0].to(self.device)
-                    labels = data[1].to(self.device)
-
-                    
-                    if self.crop == 'center':
-                        preds = self.model(inputs)
-                    elif self.crop == 'five':
-                        bs, ncrops, c, h, w = inputs.size()
-                        preds = self.model(inputs.view(-1, c, h, w))
-                        preds = preds.view(bs, ncrops, -1).mean(1)
-                else:
-                    labels = data[0][1].to(self.device)
-                    preds_l = []
-                    for i in range(len(self.sizes)):
-                        bs, ncrops, c, h, w = data[i][0].size()
-                        inputs = data[i][0].to(self.device)
-                        preds_l.append(self.model(inputs.view(-1, c, h, w)))
-                        preds_l[i] = preds_l[i].view(bs, ncrops, -1).mean(1)
-
-                preds = torch.stack(preds_l, dim=1).mean(1)
-                
-                loss = self.criterion(preds, labels)
-                loss_mean += loss.item()
-                acc = (preds.argmax(-1) == labels).sum().item() / labels.size()[0]
-                acc_mean += acc
-
-                tested_number += self.batch_size
-
-    acc_mean /= len(self.dataloader[0]) #(len(pbar))
-    loss_mean /= len(self.dataloader[0]) #(len(pbar))
-    print('acc_mean:', acc_mean, 'loss_mean:', loss_mean)
-
-def test(self):
-    for epoch in range(self.start_epoch, self.epoch):
-        pbar = tqdm.tqdm(zip(*self.dataloader))
-        pbar.set_description('testing process')
-        self.model.eval()
-        pred_labels = None
-        with torch.no_grad():
-            for it, data in enumerate(pbar):
-                if self.crop != 'multi':
-                    inputs = data[0].to(self.device)
-                    if self.crop == 'center':
-                        preds = self.model(inputs)
-                    elif self.crop == 'five':
-                        bs, ncrops, c, h, w = inputs.size()
-                        preds = self.model(inputs.view(-1, c, h, w))
-                        preds = preds.view(bs, ncrops, -1).mean(1)
-                  else:
-                      preds_l = []
-                      for i in range(len(self.sizes)):
-                          bs, ncrops, c, h, w = data[i][0].size()
-                          inputs = data[i][0].to(self.device)
-                          preds_l.append(self.model(inputs.view(-1, c, h, w)))
-                          preds_l[i] = preds_l[i].view(bs, ncrops, -1).mean(1)
+        for epoch in range(self.start_epoch, self.epoch):
+            pbar = tqdm.tqdm(zip(*self.dataloader))
+            pbar.set_description('testing process')
+            self.model.eval()
+            tested_number = 0
+            with torch.no_grad():
+                for it, data in enumerate(pbar):
+                    if self.crop != 'multi':
+                        inputs = data[0].to(self.device)
+                        labels = data[1].to(self.device)
+                        
+                        if self.crop == 'center':
+                            preds = self.model(inputs)
+                        elif self.crop == 'five':
+                            bs, ncrops, c, h, w = inputs.size()
+                            preds = self.model(inputs.view(-1, c, h, w))
+                            preds = preds.view(bs, ncrops, -1).mean(1)
+                    else:
+                        labels = data[0][1].to(self.device)
+                        preds_l = []
+                        for i in range(len(self.sizes)):
+                            bs, ncrops, c, h, w = data[i][0].size()
+                            inputs = data[i][0].to(self.device)
+                            preds_l.append(self.model(inputs.view(-1, c, h, w)))
+                            preds_l[i] = preds_l[i].view(bs, ncrops, -1).mean(1)
 
                     preds = torch.stack(preds_l, dim=1).mean(1)
+                    loss = self.criterion(preds, labels)
+                    loss_mean += loss.item()
+                    acc = (preds.argmax(-1) == labels).sum().item() / labels.size()[0]
+                    acc_mean += acc
+                    tested_number += self.batch_size
 
-                if pred_labels == None:
-                    pred_labels = preds.argmax(-1)
-                else:
-                    pred_labels = torch.cat([pred_labels, preds.argmax(-1)])
-        pred_text = self.label_to_text(pred_labels)
-        with open(self.csv_path, 'w', newline='\n') as file:
-            writer = csv.writer(file)
-            writer.writerows(pred_text)
-def criterion(self, preds, trues):
-    return torch.nn.CrossEntropyLoss()(preds, trues)
+        acc_mean /= len(self.dataloader[0]) #(len(pbar))
+        loss_mean /= len(self.dataloader[0]) #(len(pbar))
+        print('acc_mean:', acc_mean, 'loss_mean:', loss_mean)
+
+    def test(self):
+        for epoch in range(self.start_epoch, self.epoch):
+            pbar = tqdm.tqdm(zip(*self.dataloader))
+            pbar.set_description('testing process')
+            self.model.eval()
+            pred_labels = None
+            with torch.no_grad():
+                for it, data in enumerate(pbar):
+                    if self.crop != 'multi':
+                        inputs = data[0].to(self.device)
+                        if self.crop == 'center':
+                            preds = self.model(inputs)
+                        elif self.crop == 'five':
+                            bs, ncrops, c, h, w = inputs.size()
+                            preds = self.model(inputs.view(-1, c, h, w))
+                            preds = preds.view(bs, ncrops, -1).mean(1)
+                      else:
+                          preds_l = []
+                          for i in range(len(self.sizes)):
+                              bs, ncrops, c, h, w = data[i][0].size()
+                              inputs = data[i][0].to(self.device)
+                              preds_l.append(self.model(inputs.view(-1, c, h, w)))
+                              preds_l[i] = preds_l[i].view(bs, ncrops, -1).mean(1)
+
+                        preds = torch.stack(preds_l, dim=1).mean(1)
+
+                    if pred_labels == None:
+                        pred_labels = preds.argmax(-1)
+                    else:
+                        pred_labels = torch.cat([pred_labels, preds.argmax(-1)])
+                        
+            pred_text = self.label_to_text(pred_labels)
+            with open(self.csv_path, 'w', newline='\n') as file:
+                writer = csv.writer(file)
+                writer.writerows(pred_text)
+
+    def criterion(self, preds, trues):
+        return torch.nn.CrossEntropyLoss()(preds, trues)
